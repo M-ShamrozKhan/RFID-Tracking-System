@@ -2,7 +2,98 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 
-const API_URL = 'http://localhost:5000/api/Employee';
+const API_URL = '/api/Employee';
+
+const SearchableSelect = ({ value, onChange, options, placeholder, label }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const selectedOption = options.find(o => String(o.id) === String(value));
+  const filteredOptions = options.filter(o => 
+    `${o.assetId} ${o.brandModel} ${o.rfidTagId}`.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="floating-group" style={{ flex: 1, margin: 0, position: 'relative', zIndex: isOpen ? 1000 : 1 }}>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="floating-input" 
+        style={{ 
+            cursor: 'pointer', 
+            background: '#fff', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            borderColor: isOpen ? 'var(--primary-color)' : '#cbd5e1'
+        }}
+      >
+        <span style={{ color: selectedOption ? 'inherit' : '#94a3b8' }}>
+            {selectedOption ? `${selectedOption.assetId} - ${selectedOption.brandModel}` : "-- Select Laptop --"}
+        </span>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{isOpen ? '▲' : '▼'}</span>
+      </div>
+      <label className="floating-label" style={{ background: '#fff', zIndex: 2, padding: '0 5px' }}>{label}</label>
+
+      {isOpen && (
+        <>
+            {/* Click outside to close */}
+            <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setIsOpen(false)}></div>
+            
+            <div className="glass-panel" style={{ 
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, 
+            padding: '12px', marginTop: '8px', 
+            boxShadow: '0 15px 35px rgba(0,0,0,0.15)',
+            border: '1px solid #e2e8f0',
+            background: '#fff',
+            maxHeight: '300px', overflowY: 'auto'
+            }}>
+            <input 
+                autoFocus
+                type="text" 
+                placeholder="Type to search..." 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="floating-input"
+                style={{ marginBottom: '10px', height: '38px', fontSize: '0.9rem', border: '1px solid #e2e8f0' }}
+                onClick={e => e.stopPropagation()}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div 
+                onClick={() => { onChange(""); setIsOpen(false); }}
+                style={{ 
+                    padding: '10px', cursor: 'pointer', borderRadius: '6px', 
+                    background: !value ? '#f8fafc' : 'transparent',
+                    fontSize: '0.9rem',
+                    color: !value ? 'var(--primary-color)' : 'inherit'
+                }}
+                >
+                -- No Laptop Selected --
+                </div>
+                {filteredOptions.map(o => (
+                <div 
+                    key={o.id}
+                    onClick={() => { onChange(String(o.id)); setIsOpen(false); }}
+                    style={{ 
+                    padding: '10px', cursor: 'pointer', borderRadius: '6px', 
+                    background: String(o.id) === String(value) ? 'var(--primary-color)' : 'transparent',
+                    color: String(o.id) === String(value) ? '#fff' : 'inherit',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s'
+                    }}
+                    onMouseOver={e => { if(String(o.id) !== String(value)) e.target.style.background = '#f1f5f9'; }}
+                    onMouseOut={e => { if(String(o.id) !== String(value)) e.target.style.background = 'transparent'; }}
+                >
+                    <strong>{o.assetId}</strong> - {o.brandModel} <span style={{fontSize: '0.8rem', opacity: 0.7}}>[{o.rfidTagId}]</span>
+                </div>
+                ))}
+                {filteredOptions.length === 0 && <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center', fontSize: '0.85rem' }}>No matching laptops found</div>}
+            </div>
+            </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -38,6 +129,7 @@ function Employees() {
   const [unassignedAssets, setUnassignedAssets] = useState([]);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [availableRoles, setAvailableRoles] = useState([]);
+  const [assetSearch, setAssetSearch] = useState("");
 
   useEffect(() => { 
       fetchEmployees(); 
@@ -47,7 +139,7 @@ function Employees() {
 
   const fetchRoles = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/Role');
+      const res = await axios.get('/api/Role');
       // Backend returns { roles: [...], allPermissions: [...] }
       const data = res.data.roles || [];
       // Normalize casing (Support both 'Name' and 'name')
@@ -58,7 +150,7 @@ function Employees() {
 
   const fetchUnassigned = async (currentEmpId = null) => {
     try {
-      const res = await axios.get('http://localhost:5000/api/Asset');
+      const res = await axios.get('/api/Asset');
       // Show unassigned OR the ones already assigned to THIS EXACT employee
       setUnassignedAssets(res.data.filter(a => 
          !a.assignedToEmployeeId || (currentEmpId && a.assignedToEmployeeId === currentEmpId)
@@ -328,7 +420,7 @@ function Employees() {
             </div>
           )}
 
-          {(role === 'Employee' || role === 'Staff/Employee' || role === 'Staff / Employee') && (
+          {(role?.toLowerCase() === 'employee' || role === 'Staff/Employee' || role === 'Staff / Employee') && (
               <>
               <div style={{ gridColumn: '1 / -1', borderBottom: '1px solid #e2e8f0', margin: '5px 0' }}></div>
               <div style={{ gridColumn: '1 / -1' }}>
@@ -343,21 +435,12 @@ function Employees() {
               <div style={{ gridColumn: '1 / -1', minHeight: '60px' }}>
                 {(laptopIds.length === 0 ? [''] : laptopIds).map((lId, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
-                      <div className="floating-group" style={{ flex: 1, margin: 0 }}>
-                        <select 
-                          value={String(lId)} 
-                          onChange={e => updateAssetRow(idx, e.target.value)} 
-                          className="floating-select"
-                        >
-                          <option value="">-- No Laptop Selected --</option>
-                          {unassignedAssets.map(a => (
-                             <option key={a.id} value={String(a.id)}>{a.assetId} - {a.brandModel} ({a.rfidTagId})</option>
-                          ))}
-                        </select>
-                        <label className="floating-label" style={{background: 'var(--bg-main)'}}>
-                          {idx === 0 ? "Select Primary Laptop" : `Select Additional Laptop (#${idx + 1})`}
-                        </label>
-                      </div>
+                      <SearchableSelect 
+                        value={lId}
+                        onChange={val => updateAssetRow(idx, val)}
+                        options={unassignedAssets}
+                        label={idx === 0 ? "Select Primary Laptop" : `Select Additional Laptop (#${idx + 1})`}
+                      />
 
                       {idx === 0 ? (
                           <button type="button" onClick={addAssetRow} className="btn-primary" style={{ padding: '0 15px', height: '44px', width: '44px', borderRadius: '8px' }}>+</button>

@@ -200,17 +200,17 @@ function GatePasses() {
   // -----------------------------
 
   return (
-    <div style={{ maxWidth: (userRole === 'Staff/Employee' || userRole === 'Employee') ? '900px' : '100%', margin: '0 auto' }}>
+    <div style={{ maxWidth: (userRole?.toLowerCase() === 'staff/employee' || userRole?.toLowerCase() === 'employee') ? '900px' : '100%', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2.5rem' }}>
         <div>
-            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: '800', letterSpacing: '-1px' }}>{ (userRole === 'Staff/Employee' || userRole === 'Employee') ? 'MY GATE PASSES' : 'RFID SECURITY HUB'}</h1>
+            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: '800', letterSpacing: '-1px' }}>{ (userRole?.toLowerCase() === 'staff/employee' || userRole?.toLowerCase() === 'employee') ? 'MY GATE PASSES' : 'RFID SECURITY HUB'}</h1>
             <p style={{ margin: '5px 0 0 0', fontSize: '1.2rem', color: 'var(--text-muted)' }}>
-                { (userRole === 'Staff/Employee' || userRole === 'Employee') ? `Hello ${currentEmpName}! Manage your official tagged devices below.` : 'Automated Hardware Movement & Logistics Control'}
+                { (userRole?.toLowerCase() === 'staff/employee' || userRole?.toLowerCase() === 'employee') ? `Hello ${currentEmpName}! Manage your official tagged devices below.` : 'Automated Hardware Movement & Logistics Control'}
             </p>
         </div>
       </div>
 
-      { (userRole === 'Staff/Employee' || userRole === 'Employee') && (
+      { (userRole?.toLowerCase() === 'staff/employee' || userRole?.toLowerCase() === 'employee') && (
         <div style={{ background: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '20px', padding: '30px', marginBottom: '30px', display: 'flex', alignItems: 'center', gap: '25px' }}>
            <div style={{ fontSize: '3rem', background: 'white', width: '80px', height: '80px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>💼</div>
            <div>
@@ -238,7 +238,7 @@ function GatePasses() {
             <form onSubmit={handleRequest} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '25px', alignItems: 'end' }}>
                 
                 {/* ADMIN OVERRIDE ROW */}
-                {(userRole !== 'Staff/Employee' && userRole !== 'Employee') && (
+                {(userRole?.toLowerCase() !== 'staff/employee' && userRole?.toLowerCase() !== 'employee') && (
                     <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '15px', borderBottom: '1px dashed #cbd5e1' }}>
                         <label style={{ fontSize: '0.9rem', fontWeight: '800', color: '#4f46e5' }}>🔓 Admin Override: Select Employee Profile</label>
                         <select 

@@ -143,10 +143,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<AlertHub>("/alerthub");
+app.MapFallbackToFile("index.html");
 
 app.Run();

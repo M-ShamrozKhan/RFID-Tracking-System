@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const ROLE_URL = 'http://localhost:5000/api/Role';
+const ROLE_URL = '/api/Role';
 
 function RBAC() {
   const [data, setData] = useState({ roles: [], allPermissions: [] });
   const [selectedRole, setSelectedRole] = useState(null);
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingRoleId, setEditingRoleId] = useState(null);
+  const [editRoleName, setEditRoleName] = useState("");
 
   useEffect(() => {
     fetchRBAC();
@@ -59,6 +61,25 @@ function RBAC() {
 
   const [newRoleName, setNewRoleName] = useState('');
   const nodes = ["EMPLOYEES", "ASSETS", "GATEPASSES", "REPORTS", "DASHBOARD", "RFID_CONFIG"];
+
+  const handleToggleAssetCapability = async (roleId, isEnabled) => {
+    try {
+        await axios.post(`${ROLE_URL}/toggle-asset-assignable`, { RoleId: roleId, IsEnabled: isEnabled });
+        fetchRBAC(); // Refresh UI
+    } catch(e) { alert("⚠️ Toggle Failed!"); }
+  };
+
+  const handleRenameRole = async (roleId) => {
+    if(!editRoleName.trim()) return setEditingRoleId(null);
+    try {
+        await axios.post(`${ROLE_URL}/rename`, { RoleId: roleId, NewName: editRoleName });
+        alert("✅ Role Renamed Successfully");
+        setEditingRoleId(null);
+        fetchRBAC();
+    } catch(e) { 
+        alert(`⚠️ ${e.response?.data?.message || "Rename failed."}`);
+    }
+  };
 
   const handleCreateRole = async () => {
     if(!newRoleName.trim()) return;
@@ -120,7 +141,10 @@ function RBAC() {
                     {(data.roles || []).map(r => (
                     <button 
                         key={r.id} 
-                        onClick={() => handleRoleClick(r)}
+                        onClick={() => {
+                            handleRoleClick(r);
+                            setEditingRoleId(null); // Close any pending edits
+                        }}
                         style={{
                             padding: '15px 20px',
                             textAlign: 'left',
@@ -128,17 +152,16 @@ function RBAC() {
                             border: 'none',
                             borderBottom: '1px solid #f1f5f9',
                             cursor: 'pointer',
-                            fontWeight: selectedRole?.id === r.id ? 'bold' : 'normal',
+                            fontWeight: selectedRole?.id === r.id ? '700' : '400',
                             color: selectedRole?.id === r.id ? 'var(--primary-color)' : 'var(--text-color)',
                             transition: 'all 0.2s',
                             display: 'flex',
-                            flexDirection: 'column'
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
                         }}
                     >
-                        <div style={{display:'flex', justifyContent:'space-between', width:'100%'}}>
-                            <span>{r.name}</span>
-                            {selectedRole?.id === r.id && <span>→</span>}
-                        </div>
+                        <span>{r.name}</span>
+                        {selectedRole?.id === r.id && <span style={{fontSize: '0.8rem'}}>●</span>}
                     </button>
                 ))}
             </div>
@@ -149,12 +172,56 @@ function RBAC() {
         <div className="glass-panel" style={{minHeight: '400px', padding: '30px', border: '1px solid #e2e8f0', borderRadius:'12px', background: 'white'}}>
             {selectedRole ? (
                 <>
-                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'25px'}}>
-                        <div>
-                            <h2 style={{margin: 0, color: 'var(--primary-color)'}}>{selectedRole.name} Access Rights</h2>
-                            <p style={{margin: '5px 0 0', fontSize: '0.9rem', color: 'var(--text-muted)'}}>Manage node-level capabilities for this profile.</p>
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'30px', paddingBottom: '20px', borderBottom: '1px solid #f1f5f9'}}>
+                        <div style={{flex: 1}}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                                {editingRoleId === selectedRole.id ? (
+                                    <input 
+                                        autoFocus
+                                        value={editRoleName}
+                                        onChange={e => setEditRoleName(e.target.value)}
+                                        onBlur={() => handleRenameRole(selectedRole.id)}
+                                        onKeyDown={e => e.key === 'Enter' && handleRenameRole(selectedRole.id)}
+                                        style={{fontSize: '1.5rem', fontWeight: '800', border: '1px solid var(--primary-color)', borderRadius: '6px', padding: '2px 10px', width: '300px'}}
+                                    />
+                                ) : (
+                                    <h2 style={{margin: 0, color: 'var(--text-main)', fontSize: '1.8rem', fontWeight: '900'}}>
+                                        {selectedRole.name} 
+                                        <span 
+                                            onClick={() => { setEditingRoleId(selectedRole.id); setEditRoleName(selectedRole.name); }}
+                                            style={{marginLeft: '15px', fontSize: '1rem', cursor: 'pointer', opacity: 0.4}}
+                                        >✏️ Edit Name</span>
+                                    </h2>
+                                )}
+                            </div>
+                            
+                            <div style={{marginTop: '10px', display: 'flex', alignItems: 'center', gap: '20px'}}>
+                                <label style={{
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '10px', 
+                                    background: selectedRole.isAssetAssignable ? '#ecfdf5' : '#f8fafc',
+                                    color: selectedRole.isAssetAssignable ? '#065f46' : '#64748b',
+                                    padding: '8px 15px', 
+                                    borderRadius: '30px', 
+                                    fontSize: '0.85rem', 
+                                    fontWeight: '700',
+                                    border: '1px solid',
+                                    borderColor: selectedRole.isAssetAssignable ? '#a7f3d0' : '#e2e8f0',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={selectedRole.isAssetAssignable} 
+                                        onChange={(e) => handleToggleAssetCapability(selectedRole.id, e.target.checked)}
+                                    />
+                                    Enable Asset Assignment for this Role
+                                </label>
+                                <span style={{fontSize: '0.85rem', color: 'var(--text-muted)'}}>Manage node-level capabilities for this profile.</span>
+                            </div>
                         </div>
-                        <button onClick={handleSave} className="btn-primary" style={{padding: '10px 25px', borderRadius: '8px'}}>Save Changes</button>
+                        <button onClick={handleSave} className="btn-primary" style={{padding: '12px 30px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)'}}>Save Changes</button>
                     </div>
 
                     <table className="table-main" style={{marginTop: '20px'}}>

@@ -43,6 +43,13 @@ using (var scope = app.Services.CreateScope())
     }
     context.Database.EnsureCreated();
 
+    // Hot-Inject IsAssetAssignable column without wiping database
+    try {
+        context.Database.ExecuteSqlRaw("ALTER TABLE Roles ADD COLUMN IsAssetAssignable BOOLEAN DEFAULT 0;");
+    } catch {
+        // Column probably already exists, ignore
+    }
+
     // Hot-Inject Timeline Table without wiping database
     try {
         _ = context.AssetAssignmentLogs.Any();

@@ -420,7 +420,7 @@ function Employees() {
             </div>
           )}
 
-          {(role?.toLowerCase() === 'employee' || role === 'Staff/Employee' || role === 'Staff / Employee') && (
+          {(availableRoles.find(r => r.name?.toLowerCase() === role?.toLowerCase())?.isAssetAssignable) && (
               <>
               <div style={{ gridColumn: '1 / -1', borderBottom: '1px solid #e2e8f0', margin: '5px 0' }}></div>
               <div style={{ gridColumn: '1 / -1' }}>

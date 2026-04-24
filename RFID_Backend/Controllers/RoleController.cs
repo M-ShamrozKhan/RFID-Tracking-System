@@ -42,6 +42,7 @@ namespace RFID_Backend.Controllers
                 var result = roles.Select(r => new {
                     r.Id,
                     r.Name,
+                    r.IsAssetAssignable,
                     assignedPermissionIds = mappings.Where(m => m.RoleId == r.Id).Select(m => m.PermissionId).ToList()
                 });
 
@@ -93,9 +94,58 @@ namespace RFID_Backend.Controllers
             }
         }
 
+        // POST: api/Role/rename
+        [HttpPost("rename")]
+        public async Task<IActionResult> RenameRole([FromBody] RenameRoleDto dto)
+        {
+            try {
+                var role = await _context.Roles.FindAsync(dto.RoleId);
+                if(role == null) return NotFound(new { message = "Role not found" });
+                
+                if (string.IsNullOrEmpty(dto.NewName)) return BadRequest(new { message = "New Role Name is Required" });
+
+                // Check if new name exists elsewhere
+                if (await _context.Roles.AnyAsync(r => r.Id != dto.RoleId && r.Name.ToLower() == dto.NewName.ToLower())) {
+                    return BadRequest(new { message = $"Role '{dto.NewName}' already exists." });
+                }
+
+                role.Name = dto.NewName;
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Role Renamed Successfully" });
+            } catch(Exception ex) {
+                return StatusCode(500, new { message = "Rename failed", error = ex.Message });
+            }
+        }
+
+        // POST: api/Role/toggle-asset-assignable
+        [HttpPost("toggle-asset-assignable")]
+        public async Task<IActionResult> ToggleAssetAssignable([FromBody] ToggleAssetDto dto)
+        {
+            try {
+                var role = await _context.Roles.FindAsync(dto.RoleId);
+                if(role == null) return NotFound(new { message = "Role not found" });
+                
+                role.IsAssetAssignable = dto.IsEnabled;
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Role Capability Updated Successfully" });
+            } catch(Exception ex) {
+                return StatusCode(500, new { message = "Update failed", error = ex.Message });
+            }
+        }
+
         public class UpdateRoleDto {
             public int RoleId { get; set; }
             public List<int> PermissionIds { get; set; } = new();
+        }
+
+        public class RenameRoleDto {
+            public int RoleId { get; set; }
+            public string NewName { get; set; }
+        }
+
+        public class ToggleAssetDto {
+            public int RoleId { get; set; }
+            public bool IsEnabled { get; set; }
         }
     }
 }

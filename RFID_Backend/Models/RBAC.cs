@@ -9,6 +9,7 @@ namespace RFID_Backend.Models
         [Required]
         public string Name { get; set; } = string.Empty; // SuperAdmin, HR, etc.
         public string Description { get; set; } = string.Empty;
+        public bool IsAssetAssignable { get; set; } = false;
     }
 
     public class Permission

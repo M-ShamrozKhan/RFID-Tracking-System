@@ -33,6 +33,16 @@ namespace RFID_Backend.Controllers
 
             _context.Assets.Add(asset);
             await _context.SaveChangesAsync();
+
+            // Log the initial creation/registration in timeline
+            _context.AssetAssignmentLogs.Add(new AssetAssignmentLog {
+                AssetId = asset.Id,
+                Action = "Asset Registered",
+                Timestamp = DateTime.UtcNow,
+                EmployeeId = null
+            });
+            await _context.SaveChangesAsync();
+
             return CreatedAtAction(nameof(GetAssets), new { id = asset.Id }, asset);
         }
 
@@ -61,6 +71,22 @@ namespace RFID_Backend.Controllers
             if (asset == null) return NotFound();
 
             asset.CurrentStatus = status;
+
+            // Logic: Auto-unassign if asset is deactivated
+            if (status == "Inactive" && asset.AssignedToEmployeeId != null) 
+            {
+                // Create Log Entry before unassigning
+                var log = new AssetAssignmentLog {
+                    AssetId = asset.Id,
+                    EmployeeId = null,
+                    Action = "System Auto-Unassigned (Asset Deactivated)",
+                    Timestamp = DateTime.UtcNow
+                };
+                _context.AssetAssignmentLogs.Add(log);
+
+                asset.AssignedToEmployeeId = null;
+            }
+
             await _context.SaveChangesAsync();
             return NoContent();
         }
@@ -72,24 +98,26 @@ namespace RFID_Backend.Controllers
             var asset = await _context.Assets.FindAsync(assetId);
             if (asset == null) return NotFound();
 
+            string actionText = "";
             if (employeeId == 0) {
                 asset.AssignedToEmployeeId = null;
-                _context.AssetAssignmentLogs.Add(new AssetAssignmentLog {
-                    AssetId = asset.Id,
-                    EmployeeId = null,
-                    Action = "Unassigned",
-                    Timestamp = DateTime.UtcNow
-                });
+                actionText = "Unassigned";
             } else {
+                actionText = asset.AssignedToEmployeeId == null ? "First Assignment" : "Reassigned";
                 asset.AssignedToEmployeeId = employeeId;
-                _context.AssetAssignmentLogs.Add(new AssetAssignmentLog {
-                    AssetId = asset.Id,
-                    EmployeeId = employeeId,
-                    Action = "Assigned",
-                    Timestamp = DateTime.UtcNow
-                });
             }
+
+            // Create Log Entry
+            var log = new AssetAssignmentLog {
+                AssetId = asset.Id,
+                EmployeeId = employeeId == 0 ? null : (int?)employeeId,
+                Action = actionText,
+                Timestamp = DateTime.UtcNow
+            };
+
+            _context.AssetAssignmentLogs.Add(log);
             await _context.SaveChangesAsync();
+
             return NoContent();
         }
 
@@ -119,7 +147,23 @@ namespace RFID_Backend.Controllers
                     employeeName = log.Employee != null ? log.Employee.Name : null,
                     department = log.Employee != null ? log.Employee.Department : null
                 })
-                .ToListAsync();
+                .ToListAsync<object>();
+
+            // If no timeline records but it IS currently assigned, synthesize an entry
+            if (!timeline.Any() && asset.AssignedToEmployeeId != null)
+            {
+                var currentEmp = await _context.Employees.FindAsync(asset.AssignedToEmployeeId);
+                if (currentEmp != null)
+                {
+                    timeline.Add(new {
+                        action = "Current Assignment",
+                        timestamp = DateTime.UtcNow, // Or a fixed date if we don't know
+                        employeeId = currentEmp.EmpId,
+                        employeeName = currentEmp.Name,
+                        department = currentEmp.Department
+                    });
+                }
+            }
 
             return Ok(new {
                 assetId = asset.AssetId,
@@ -168,13 +212,22 @@ namespace RFID_Backend.Controllers
                 designation = asset.AssignedEmployee.Designation
             } : null;
 
+            // Logic for In/Out Status
+            var now = DateTime.UtcNow;
+            var activeGatePass = await _context.GatePasses
+                .Where(p => p.AssetId == asset.Id && p.Status == "Approved" && p.ValidFrom <= now && p.ValidTill >= now)
+                .FirstOrDefaultAsync();
+
+            string locationStatus = activeGatePass != null ? "Outside (On GatePass)" : "Inside (Office)";
+
             return Ok(new {
                 AssetInfo = new {
                     assetId = asset.AssetId,
                     rfidTagId = asset.RfidTagId,
                     serialNumber = asset.SerialNumber,
                     brandModel = asset.BrandModel,
-                    currentStatus = asset.CurrentStatus
+                    currentStatus = asset.CurrentStatus,
+                    locationStatus = locationStatus // New field
                 },
                 EmployeeInfo = employeeData,
                 LastGatePass = lastRequest != null ? new {

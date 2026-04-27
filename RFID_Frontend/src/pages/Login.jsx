@@ -10,7 +10,7 @@ function Login({ onLogin }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-        const res = await axios.post(`http://localhost:5000/api/Employee/login`, { username, password });
+        const res = await axios.post(`/api/Employee/login`, { username, password });
         const userData = res.data;
         
         localStorage.setItem('rfid_auth', userData.role);

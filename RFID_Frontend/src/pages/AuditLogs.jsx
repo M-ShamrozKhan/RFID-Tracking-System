@@ -11,7 +11,7 @@ function AuditLogs() {
 
   const fetchLogs = async () => {
     try {
-        const res = await axios.get('http://localhost:5000/api/Audit');
+        const res = await axios.get('/api/Audit');
         setLogs(res.data);
     } catch(e) { console.error("Logs fetch failed", e); }
     setLoading(false);

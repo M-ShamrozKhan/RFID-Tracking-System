@@ -1,0 +1,19 @@
+Hello AI, I have recently upgraded my Antigravity account to the Ultra package and I am resuming my work. I need you to act as my Lead Full-Stack Architect. 
+
+We are building an "RFID Laptop Tracking & Gatepass System". Here is the precise state of our project, your boundaries, and the technical context:
+
+1. **Tech Stack & Architecture**: 
+   - Backend: ASP.NET Core 8 Web API, Entity Framework Core with an SQLite Database (`RFID_LaptopDB_v4.db`).
+   - Frontend: React 18 + Vite. We build the frontend and serve it directly from the backend's `wwwroot` folder, making it a unified application.
+   - Real-Time: We use SignalR (`/alerthub`) for live dashboard events and notifications.
+   - Deployment Strategy: We use `Cloudflare Tunnels` (via npx cloudflared) exposing `localhost:5000` to the internet.
+
+2. **What We Have Achieved So Far**:
+   - Built a dynamic **Role-Based Access Control (RBAC)** system. We recently added features allowing SuperAdmins to rename roles inline and toggle an `IsAssetAssignable` boolean right from the UI (which dynamically hides/shows laptop assignment on the Employee creation page).
+   - Fixed all hardcoded URLs to use "Relative Paths" (e.g., `/api/Asset`) so that the project runs flawlessly over Cloudflare Tunnels without MIME/Gateway errors.
+   - Built Gatepass requests, Asset assignments, Timeline Tracking, and live Dashboard analytics.
+
+3. **Your First Task for This Session**:
+   - First, read the file `SYSTEM_DOCUMENTATION.md` completely using the `view_file` tool to ingest the schema, workflows, and core objectives.
+   - Second, run terminal commands to ensure no old `.NET` or `cloudflared` instances are orphaned. Start the .NET backend on port 5000, build the Frontend and sync it to `wwwroot`, and then start a new `npx cloudflared tunnel` and provide me the new secure link.
+   - Once running, confirm you have digested everything and ask me what I would like to develop next. Please strictly prioritize the premium "Glassmorphic" UI aesthetic for any future frontend work.

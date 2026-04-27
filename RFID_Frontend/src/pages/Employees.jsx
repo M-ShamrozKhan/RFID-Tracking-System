@@ -113,6 +113,9 @@ function Employees() {
   const [role, setRole] = useState('Employee');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  
+  const [divisionManagerId, setDivisionManagerId] = useState('');
+  const [divisionManagers, setDivisionManagers] = useState([]);
 
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -164,6 +167,8 @@ function Employees() {
       const data = res.data;
       setEmployees(data);
       
+      setDivisionManagers(data.filter(e => e.role && e.role.toLowerCase() === 'divisionalmanager'));
+      
       let maxId = 0;
       data.forEach(e => { if (e.id > maxId) maxId = e.id; });
       setNextEmpId(`EMP-${String(maxId + 1).padStart(4, '0')}`);
@@ -175,6 +180,7 @@ function Employees() {
   const clearForm = () => {
       setEmpId(''); setName(''); setDep(''); setDivision(''); setDesignation(''); setContact('');
       setStatus('Active'); setRole('Employee'); setPassword(''); setShowPassword(false);
+      setDivisionManagerId('');
       setLaptopIds([]); setRfidTagId(''); setLaptopBrand('');
       setIsEditing(false); setEditId(null);
       setIsResettingPassword(false);
@@ -189,8 +195,16 @@ function Employees() {
   };
   const removeAssetRow = (idx) => setLaptopIds(laptopIds.filter((_, i) => i !== idx));
 
+  const formRef = React.useRef(null);
+
   const handleEditClick = async (emp) => {
       console.log("State - Opening Edit for:", emp);
+      
+      // Scroll to form smoothly
+      if (formRef.current) {
+          formRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+
       const currentAssetIds = (emp.assignedAssets || []).map(a => a.id);
       await fetchUnassigned(emp.id);
 
@@ -199,6 +213,7 @@ function Employees() {
       setEmpId(emp.empId); setName(emp.name); setDep(emp.department || ''); 
       setDivision(emp.division || ''); setDesignation(emp.designation || ''); setContact(emp.contactDetails || '');
       setRole(emp.role); setStatus(emp.status);
+      setDivisionManagerId(emp.divisionManagerId ? String(emp.divisionManagerId) : '');
       setPassword(''); setShowPassword(false); // Clear for reset logic
       setIsResettingPassword(false);
       
@@ -210,6 +225,7 @@ function Employees() {
     const payload = { 
         empId, name, department: dep, division, designation, contactDetails: contact, 
         status, role, password,
+        divisionManagerId: divisionManagerId ? parseInt(divisionManagerId) : null,
         laptopIds
     };
 
@@ -255,9 +271,60 @@ function Employees() {
   };
 
   const handleBulkUpload = async (e) => {
-      // Bulk upload logic identical
-      alert("Mass importing... Check back soon.");
-      e.target.value = null; // reset
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        if (data.length === 0) {
+          alert("❌ Excel file is empty!");
+          return;
+        }
+
+        // Validate Format (Simple check)
+        const requiredCols = ['Name', 'Department', 'Division', 'Designation', 'ContactDetails', 'Role', 'Password'];
+        const firstRow = Object.keys(data[0]);
+        const missing = requiredCols.filter(c => !firstRow.includes(c));
+
+        if (missing.length > 0) {
+          alert(`❌ Missing Columns: ${missing.join(', ')}\n\nPlease ensure your Excel has these exact headers.`);
+          return;
+        }
+
+        setLoading(true);
+        const res = await axios.post(`${API_URL}/bulk`, data);
+        alert(`✅ Success: ${res.data.count} Employees Imported!`);
+        fetchEmployees();
+      } catch (err) {
+        alert("❌ Error processing file. Make sure it's a valid Excel/CSV.");
+        console.error(err);
+      }
+      setLoading(false);
+      e.target.value = null; // reset input
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const showFormatGuide = () => {
+      alert(
+        "📋 EXCEL IMPORT FORMAT:\n\n" +
+        "Required Headers (Case Sensitive):\n" +
+        "1. Name\n" +
+        "2. Department\n" +
+        "3. Division\n" +
+        "4. Designation\n" +
+        "5. ContactDetails\n" +
+        "6. Role (e.g., Employee, SuperAdmin)\n" +
+        "7. Password\n\n" +
+        "Note: Employee IDs will be auto-generated."
+      );
   };
 
   const filteredEmployees = employees.filter(emp => 
@@ -275,13 +342,23 @@ function Employees() {
         </button>
       </div>
       
-      <div className="glass-panel" style={{ background: '#fafafa', padding: '25px', borderRadius: '12px' }}>
+      <div ref={formRef} className="glass-panel" style={{ background: '#fafafa', padding: '25px', borderRadius: '12px' }}>
         <div className="section-title" style={{ borderBottom: 'none'}}>
             <span style={{color: 'var(--primary-color)'}}>{isEditing ? 'Editing Profile details' : 'Add New Employee'}</span>
             {!isEditing && (
-                <div style={{position: 'relative', display: 'inline-block'}}>
-                    <button className="btn-outline">📄 Import Excel List</button>
-                    <input type="file" accept=".csv, .xlsx" onChange={handleBulkUpload} style={{position: 'absolute', opacity: 0, right: 0, top: 0, bottom: 0, left: 0, cursor: 'pointer'}} />
+                <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+                    <div style={{position: 'relative'}}>
+                        <button className="btn-outline">📄 Import Excel List</button>
+                        <input type="file" accept=".csv, .xlsx" onChange={handleBulkUpload} style={{position: 'absolute', opacity: 0, right: 0, top: 0, bottom: 0, left: 0, cursor: 'pointer'}} />
+                    </div>
+                    <button 
+                        type="button" 
+                        onClick={showFormatGuide} 
+                        style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b' }}
+                        title="View Excel Format Guide"
+                    >
+                        i
+                    </button>
                 </div>
             )}
         </div>
@@ -347,6 +424,18 @@ function Employees() {
             </select>
             <label className="floating-label" style={{background: 'var(--bg-main)'}}>Status</label>
           </div>
+
+          {role !== 'DivisionalManager' && (
+            <div className="floating-group">
+              <select value={divisionManagerId} onChange={e => setDivisionManagerId(e.target.value)} className="floating-select">
+                <option value="">-- None --</option>
+                {divisionManagers.map(dm => (
+                  <option key={dm.id} value={dm.id}>{dm.name} ({dm.empId})</option>
+                ))}
+              </select>
+              <label className="floating-label" style={{background: 'var(--bg-main)'}}>Assigned Division Manager</label>
+            </div>
+          )}
 
           {!isEditing ? (
             <div className="floating-group" style={{ position: 'relative' }}>
@@ -507,6 +596,11 @@ function Employees() {
                 <td>
                    <span style={{ fontSize: '0.8em', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold' }}>{emp.role}</span>
                    <div style={{fontSize:'0.8em', color:'var(--text-muted)', marginTop:'5px'}}>{emp.division} / {emp.department}</div>
+                   {emp.divisionManagerName && emp.divisionManagerName !== "N/A" && (
+                       <div style={{fontSize:'0.75em', color:'var(--primary-color)', marginTop:'2px', fontWeight: '600'}}>
+                           👤 DM: {emp.divisionManagerName}
+                       </div>
+                   )}
                 </td>
                 <td><span className={emp.status === 'Active' ? 'badge badge-success' : 'badge badge-danger'}>{emp.status}</span></td>
                 <td>

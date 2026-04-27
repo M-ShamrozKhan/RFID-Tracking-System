@@ -23,5 +23,7 @@ namespace RFID_Backend.Models
 
         public string Role { get; set; } = "Employee"; // System Role (Admin / Employee)
         public string Password { get; set; } = "12345"; // Secured pass
+
+        public int? DivisionManagerId { get; set; } // Tracks which DM oversees this employee
     }
 }

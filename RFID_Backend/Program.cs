@@ -50,6 +50,13 @@ using (var scope = app.Services.CreateScope())
         // Column probably already exists, ignore
     }
 
+    // Hot-Inject DivisionManagerId column without wiping database
+    try {
+        context.Database.ExecuteSqlRaw("ALTER TABLE Employees ADD COLUMN DivisionManagerId INTEGER;");
+    } catch {
+        // Column probably already exists, ignore
+    }
+
     // Hot-Inject Timeline Table without wiping database
     try {
         _ = context.AssetAssignmentLogs.Any();

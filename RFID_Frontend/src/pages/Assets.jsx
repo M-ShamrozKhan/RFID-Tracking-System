@@ -1,8 +1,104 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/Asset';
-const EMP_URL = 'http://localhost:5000/api/Employee';
+const API_URL = '/api/Asset';
+const EMP_URL = '/api/Employee';
+
+const SearchableEmployeeSelect = ({ value, onChange, options, label }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const selectedOption = options.find(o => String(o.id) === String(value));
+  const filteredOptions = options.filter(o => 
+    `${o.name} ${o.empId} ${o.department}`.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="floating-group" style={{ flex: 1, margin: 0, position: 'relative', zIndex: isOpen ? 1000 : 1 }}>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="floating-input" 
+        style={{ 
+            cursor: 'pointer', 
+            background: '#f8fafc', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            borderColor: isOpen ? 'var(--primary-color)' : '#cbd5e1',
+            padding: '15px 12px',
+            fontWeight: '700',
+            color: '#1e293b'
+        }}
+      >
+        <span>
+            {value === "0" ? "⚠️ Un-assign / Reclaim to IT" : 
+             (selectedOption ? `${selectedOption.name} (${selectedOption.empId} - ${selectedOption.department})` : "Select an Employee...")}
+        </span>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{isOpen ? '▲' : '▼'}</span>
+      </div>
+      <label className="floating-label" style={{ background: '#fff', zIndex: 2, padding: '0 5px' }}>{label}</label>
+
+      {isOpen && (
+        <>
+            {/* Click outside to close */}
+            <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setIsOpen(false)}></div>
+            
+            <div className="glass-panel" style={{ 
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, 
+            padding: '12px', marginTop: '8px', 
+            boxShadow: '0 15px 35px rgba(0,0,0,0.15)',
+            border: '1px solid #e2e8f0',
+            background: '#fff',
+            maxHeight: '300px', overflowY: 'auto'
+            }}>
+            <input 
+                autoFocus
+                type="text" 
+                placeholder="Type name, ID or Dept to search..." 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="floating-input"
+                style={{ marginBottom: '10px', height: '38px', fontSize: '0.9rem', border: '1px solid #e2e8f0' }}
+                onClick={e => e.stopPropagation()}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div 
+                onClick={() => { onChange("0"); setIsOpen(false); }}
+                style={{ 
+                    padding: '10px', cursor: 'pointer', borderRadius: '6px', 
+                    background: value === "0" ? '#f8fafc' : 'transparent',
+                    fontSize: '0.9rem',
+                    color: value === "0" ? 'red' : '#94a3b8',
+                    fontWeight: 'bold'
+                }}
+                >
+                ⚠️ Un-assign / Reclaim to IT
+                </div>
+                {filteredOptions.map(o => (
+                <div 
+                    key={o.id}
+                    onClick={() => { onChange(String(o.id)); setIsOpen(false); }}
+                    style={{ 
+                    padding: '10px', cursor: 'pointer', borderRadius: '6px', 
+                    background: String(o.id) === String(value) ? 'var(--primary-color)' : 'transparent',
+                    color: String(o.id) === String(value) ? '#fff' : 'inherit',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s'
+                    }}
+                    onMouseOver={e => { if(String(o.id) !== String(value)) e.target.style.background = '#f1f5f9'; }}
+                    onMouseOut={e => { if(String(o.id) !== String(value)) e.target.style.background = 'transparent'; }}
+                >
+                    <strong>{o.name}</strong> ({o.empId} - {o.department})
+                </div>
+                ))}
+                {filteredOptions.length === 0 && <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center', fontSize: '0.85rem' }}>No employees found</div>}
+            </div>
+            </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 function Assets() {
   const [assets, setAssets] = useState([]);
@@ -123,19 +219,13 @@ function Assets() {
                 </div>
                 
                 <form onSubmit={submitAssignment} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div className="floating-group" style={{ marginBottom: '0' }}>
-                        <select 
-                            className="floating-input" 
+                    <div style={{ marginBottom: '0' }}>
+                        <SearchableEmployeeSelect 
                             value={assignmentEmpId} 
-                            onChange={(e) => setAssignmentEmpId(e.target.value)}
-                            style={{ padding: '15px 12px', background: '#f8fafc', fontWeight: '700', color: '#1e293b' }}
-                        >
-                            <option value="0">⚠️ Un-assign / Reclaim to IT</option>
-                            {employees.map(emp => (
-                                <option key={emp.id} value={emp.id}>{emp.name} ({emp.empId} - {emp.department})</option>
-                            ))}
-                        </select>
-                        <label className="floating-label">Mapped Employee Profile</label>
+                            onChange={(val) => setAssignmentEmpId(val)}
+                            options={employees}
+                            label="Mapped Employee Profile"
+                        />
                     </div>
 
                     <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
@@ -266,6 +356,22 @@ function Assets() {
                     <button onClick={() => handleEditClick(a)} className="btn-outline" style={{padding: '4px 8px', fontSize: '0.8rem', marginRight: '5px'}}>
                         Edit
                     </button>
+                    {a.assignedEmployee && (
+                      <button 
+                        onClick={async () => {
+                          if(window.confirm(`Are you sure you want to unassign this asset from ${a.assignedEmployee.name}?`)) {
+                            try {
+                              await axios.put(`${API_URL}/assign/${a.id}`, 0, { headers: { 'Content-Type': 'application/json' }});
+                              fetchData();
+                            } catch(err) { alert("Unassign Failed."); }
+                          }
+                        }} 
+                        className="btn-outline" 
+                        style={{padding: '4px 8px', fontSize: '0.8rem', marginRight: '5px', borderColor: '#f59e0b', color: '#d97706'}}
+                      >
+                          Unassign
+                      </button>
+                    )}
                     <button onClick={() => handleAssignClick(a)} className="btn-outline" style={{padding: '4px 8px', fontSize: '0.8rem', marginRight: '5px'}}>
                         Reassign
                     </button>

@@ -34,6 +34,8 @@ namespace RFID_Backend.Controllers
                 status = e.Status, 
                 role = e.Role, 
                 password = e.Password,
+                divisionManagerId = e.DivisionManagerId,
+                divisionManagerName = e.DivisionManagerId != null ? employees.FirstOrDefault(dm => dm.Id == e.DivisionManagerId)?.Name : "N/A",
                 assignedAssets = allAssets.Where(a => a.AssignedToEmployeeId == e.Id)
                                           .Select(a => new { a.Id, a.AssetId, a.BrandModel, a.RfidTagId }).ToList()
             });
@@ -54,7 +56,8 @@ namespace RFID_Backend.Controllers
                 Name = dto.Name, Department = dto.Department,
                 Division = dto.Division ?? string.Empty, Designation = dto.Designation ?? string.Empty,
                 ContactDetails = dto.ContactDetails ?? string.Empty, Status = dto.Status,
-                Role = dto.Role, Password = dto.Password
+                Role = dto.Role, Password = dto.Password,
+                DivisionManagerId = dto.DivisionManagerId
             };
 
             _context.Employees.Add(employee);
@@ -92,6 +95,7 @@ namespace RFID_Backend.Controllers
             employee.ContactDetails = updatedEmp.ContactDetails ?? string.Empty;
             employee.Role = updatedEmp.Role;
             employee.Status = updatedEmp.Status;
+            employee.DivisionManagerId = updatedEmp.DivisionManagerId;
             
             // SECURITY: Update password only if provided (supports Reset workflow)
             if (!string.IsNullOrEmpty(updatedEmp.Password)) {
@@ -169,6 +173,29 @@ namespace RFID_Backend.Controllers
             // Success, send the logged in user's token, Role, AND node-level Permissions
             return Ok(new { id = user.Id, empId = user.EmpId, name = user.Name, role = user.Role, permissions = permissions });
         }
+
+        // NEW: Bulk Import from Excel
+        [HttpPost("bulk")]
+        public async Task<IActionResult> BulkImport([FromBody] List<Employee> importedList)
+        {
+            if (importedList == null || !importedList.Any()) return BadRequest("List is empty.");
+
+            var lastEmployee = await _context.Employees.OrderByDescending(e => e.Id).FirstOrDefaultAsync();
+            int nextId = lastEmployee != null ? lastEmployee.Id + 1 : 1;
+
+            foreach(var emp in importedList) {
+                emp.EmpId = "EMP-" + nextId.ToString("D4");
+                emp.Status = emp.Status ?? "Active";
+                emp.Role = emp.Role ?? "Employee";
+                emp.Password = emp.Password ?? "12345";
+                
+                _context.Employees.Add(emp);
+                nextId++;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { count = importedList.Count });
+        }
     }
 
     // Required schema binders
@@ -183,6 +210,7 @@ namespace RFID_Backend.Controllers
         public string Role { get; set; } = "Employee";
         public string Status { get; set; } = "Active";
         public string Password { get; set; } = "12345";
+        public int? DivisionManagerId { get; set; }
         
         // SUPPORT FOR MULTIPLE ASSET IDS
         public List<string>? LaptopIds { get; set; }

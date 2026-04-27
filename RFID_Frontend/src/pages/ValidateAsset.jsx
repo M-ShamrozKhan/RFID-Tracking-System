@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/Asset';
+const API_URL = '/api/Asset';
 
 function ValidateAsset() {
     const [searchCode, setSearchCode] = useState('');
@@ -57,6 +57,37 @@ function ValidateAsset() {
                 </form>
                 {errorMsg && <div style={{ marginTop: '15px', color: '#ef4444', fontWeight: '700' }}>⚠️ {errorMsg}</div>}
             </div>
+
+            {result && result.assetInfo && (
+                <div className="glass-panel" style={{ 
+                    marginBottom: '30px', 
+                    padding: '15px 25px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    borderLeft: `10px solid ${(result.assetInfo.locationStatus || 'Inside').includes('Inside') ? '#10b981' : '#ef4444'}`,
+                    background: (result.assetInfo.locationStatus || 'Inside').includes('Inside') ? '#f0fdf4' : '#fef2f2'
+                }}>
+                    <div>
+                        <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: '600', display: 'block', marginBottom: '5px' }}>CURRENT ASSET LOCATION</span>
+                        <h2 style={{ margin: 0, color: (result.assetInfo.locationStatus || 'Inside').includes('Inside') ? '#166534' : '#991b1b', fontWeight: '900', letterSpacing: '1px' }}>
+                            {(result.assetInfo.locationStatus || 'Inside (Office)').toUpperCase()}
+                        </h2>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block' }}>Verified at: {new Date().toLocaleTimeString()}</span>
+                        <div style={{ 
+                            marginTop: '5px',
+                            display: 'inline-block',
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            background: (result.assetInfo.locationStatus || 'Inside').includes('Inside') ? '#10b981' : '#ef4444',
+                            boxShadow: `0 0 10px ${(result.assetInfo.locationStatus || 'Inside').includes('Inside') ? '#10b981' : '#ef4444'}`
+                        }}></div>
+                    </div>
+                </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
                 

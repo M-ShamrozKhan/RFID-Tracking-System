@@ -17,17 +17,27 @@ namespace RFID_Backend.Controllers
         }
 
         [HttpGet("summary")]
-        public async Task<IActionResult> GetSummary()
+        public async Task<IActionResult> GetSummary([FromQuery] string role = "SuperAdmin", [FromQuery] int empId = 0)
         {
             var now = DateTime.UtcNow;
-            var assets = await _context.Assets
-                .Include(a => a.AssignedEmployee)
-                .ToListAsync();
             
-            var passes = await _context.GatePasses
-                .Include(p => p.Asset)
-                .Include(p => p.Employee)
-                .ToListAsync();
+            var assetsQuery = _context.Assets.Include(a => a.AssignedEmployee).AsQueryable();
+            var passesQuery = _context.GatePasses.Include(p => p.Asset).Include(p => p.Employee).AsQueryable();
+
+            List<int> validEmpIds = null;
+            if (role == "DivisionalManager" && empId > 0)
+            {
+                validEmpIds = await _context.Employees
+                    .Where(e => e.DivisionManagerId == empId || e.Id == empId)
+                    .Select(e => e.Id)
+                    .ToListAsync();
+                
+                assetsQuery = assetsQuery.Where(a => a.AssignedToEmployeeId != null && validEmpIds.Contains(a.AssignedToEmployeeId.Value));
+                passesQuery = passesQuery.Where(p => validEmpIds.Contains(p.EmployeeId));
+            }
+
+            var assets = await assetsQuery.ToListAsync();
+            var passes = await passesQuery.ToListAsync();
 
             // 1. Inside Facilities
             var insideAssets = assets.Where(a => a.CurrentStatus == "Inside" && a.AssignedToEmployeeId != null).ToList();
@@ -44,6 +54,13 @@ namespace RFID_Backend.Controllers
             ).ToList();
 
             var allLogs = await _context.MovementLogs.OrderByDescending(l => l.Timestamp).ToListAsync();
+            
+            if (role == "DivisionalManager" && empId > 0)
+            {
+                var validTags = assets.Select(a => a.RfidTagId).ToList();
+                allLogs = allLogs.Where(l => validTags.Contains(l.RfidTagId)).ToList();
+            }
+
             var logsFeed = allLogs.Take(50).ToList();
             var unauthorizedCount = allLogs.Count(l => !l.IsAuthorized);
 

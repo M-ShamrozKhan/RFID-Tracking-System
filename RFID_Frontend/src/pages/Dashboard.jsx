@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as signalR from '@microsoft/signalr';
 
-const API_URL = 'http://localhost:5000/api'; 
+const API_URL = '/api'; 
 
 function Dashboard() {
   const [stats, setStats] = useState({ insideCount: 0, outsideCount: 0, overdueCount: 0, unauthorizedCount: 0 });
@@ -28,7 +28,7 @@ function Dashboard() {
     const interval = setInterval(fetchData, 10000); // Poll every 10 seconds for real-time consistency
 
     const connection = new signalR.HubConnectionBuilder()
-        .withUrl(`http://localhost:5000/alerthub`)
+        .withUrl(`/alerthub`)
         .withAutomaticReconnect()
         .build();
 
@@ -41,7 +41,8 @@ function Dashboard() {
 
   const fetchData = async () => {
     try {
-        const res = await axios.get(`${API_URL}/Dashboard/summary`);
+        const empId = parseInt(localStorage.getItem('rfid_emp_id')) || 0;
+        const res = await axios.get(`${API_URL}/Dashboard/summary?role=${userRole}&empId=${empId}`);
         setStats(res.data);
         setRecentLogs(res.data.recentLogs || []);
         if (drilldownType) setDrilldownData(res.data.drilldown[drilldownType.toLowerCase()] || []);

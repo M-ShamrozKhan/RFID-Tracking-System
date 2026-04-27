@@ -4,6 +4,7 @@ import * as signalR from '@microsoft/signalr';
 import axios from 'axios';
 import Dashboard from './pages/Dashboard';
 import Employees from './pages/Employees';
+import MyTeam from './pages/MyTeam';
 import Assets from './pages/Assets';
 import GatePasses from './pages/GatePasses';
 import AuditLogs from './pages/AuditLogs';
@@ -89,7 +90,7 @@ function AppLayout() {
 
   const fetchNotifications = async () => {
     try {
-        const res = await axios.get('http://localhost:5000/api/Notification');
+        const res = await axios.get('/api/Notification');
         setNotifications(res.data.map(n => ({ id: n.id, text: n.message, time: new Date(n.timestamp), read: n.isRead })));
     } catch (e) { console.error("Global Alert Fetch Error", e); }
   };
@@ -109,7 +110,7 @@ function AppLayout() {
 
      // Connect to Global Hub
      const connection = new signalR.HubConnectionBuilder()
-         .withUrl(`http://localhost:5000/alerthub`)
+         .withUrl(`/alerthub`)
          .withAutomaticReconnect()
          .build();
 
@@ -151,7 +152,7 @@ function AppLayout() {
       setShowNotifications(!showNotifications);
       if (!showNotifications) {
           try {
-              await axios.post('http://localhost:5000/api/Notification/mark-read');
+              await axios.post('/api/Notification/mark-read');
               setNotifications(notifications.map(n => ({...n, read: true})));
           } catch(e) {}
       }
@@ -159,7 +160,7 @@ function AppLayout() {
 
   const handleClearNotifications = async () => {
       try {
-          await axios.delete('http://localhost:5000/api/Notification/clear');
+          await axios.delete('/api/Notification/clear');
           setNotifications([]);
       } catch(e) {}
   };
@@ -213,6 +214,10 @@ function AppLayout() {
             
             {hasAccess('EMPLOYEES') && (
               <NavLink to="/employees" icon="👥" label="Employees" isCollapsed={isCollapsed} />
+            )}
+            
+            {userRole === 'DivisionalManager' && (
+              <NavLink to="/my-team" icon="👥" label="My Team" isCollapsed={isCollapsed} />
             )}
             
             {hasAccess('ASSETS') && (
@@ -365,6 +370,7 @@ function AppLayout() {
                 <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/employees" element={<Employees />} />
+                <Route path="/my-team" element={<MyTeam />} />
                 <Route path="/assets" element={<Assets />} />
                 <Route path="/validate-asset" element={<ValidateAsset />} />
                 <Route path="/timeline" element={<AssetTimeline />} />

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/Asset';
+const API_URL = '/api/Asset';
 
 function AssetTimeline() {
     const [searchCode, setSearchCode] = useState('');

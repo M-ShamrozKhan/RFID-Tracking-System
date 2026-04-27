@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/GatePass';
-const ASSET_URL = 'http://localhost:5000/api/Asset';
+const API_URL = '/api/GatePass';
+const ASSET_URL = '/api/Asset';
 
 function GatePasses() {
   const { tab } = useParams();
@@ -56,13 +56,17 @@ function GatePasses() {
       } catch (err) { console.error("Asset fetch error:", err); }
 
       try {
-        const eRes = await axios.get('http://localhost:5000/api/Employee');
+        const eRes = await axios.get('/api/Employee');
         allEmployeesData = eRes.data;
       } catch (err) { console.error("Employee fetch error:", err); }
 
       // Filter based on Role
-      if (userRole === 'SuperAdmin' || userRole === 'SecurityAdmin' || userRole === 'DivisionalManager') {
+      if (userRole === 'SuperAdmin' || userRole === 'SecurityAdmin') {
         setPasses(allPasses);
+      } else if (userRole === 'DivisionalManager') {
+        // Only show their own passes, OR passes from employees mapped to them
+        const mySubordinates = allEmployeesData.filter(e => e.divisionManagerId === currentEmpId).map(e => e.id);
+        setPasses(allPasses.filter(p => p.employeeId === currentEmpId || mySubordinates.includes(p.employeeId)));
       } else {
         // Employee sees only their own
         setPasses(allPasses.filter(p => p.employeeId === currentEmpId));
@@ -163,7 +167,7 @@ function GatePasses() {
     setIsSimulating(true);
     setScanResult({ type: '', text: '' });
     try {
-        const res = await axios.post(`http://localhost:5000/api/Gate/scan`, { 
+        const res = await axios.post(`/api/Gate/scan`, { 
             rfidTagId: simTagId, 
             gateId: simGate, 
             direction: dir 
@@ -192,10 +196,14 @@ function GatePasses() {
   const activeProfile = allEmployees.find(e => String(e.id || e.Id) === String(profileIdToUse));
   
   const activeAssets = activeProfile && activeProfile.assignedAssets 
-      ? activeProfile.assignedAssets.map(a => ({
-          id: a.id || a.Id,
-          label: `${a.assetId || a.AssetId || 'N/A'} - ${a.brandModel || a.BrandModel || 'Device'} (${a.rfidTagId || a.RfidTagId || 'No Tag'})`
-        })) 
+      ? activeProfile.assignedAssets.map(a => {
+          const fullAsset = allAssets.find(x => x.id === (a.id || a.Id));
+          return {
+              id: a.id || a.Id,
+              label: `${a.assetId || a.AssetId || 'N/A'} - ${a.brandModel || a.BrandModel || 'Device'} (${a.rfidTagId || a.RfidTagId || 'No Tag'})`,
+              status: fullAsset ? fullAsset.currentStatus : 'Inside'
+          };
+        }).filter(a => a.status !== 'Inactive')
       : [];
   // -----------------------------
 

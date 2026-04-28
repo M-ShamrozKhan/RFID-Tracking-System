@@ -91,22 +91,24 @@ namespace RFID_Backend.Controllers
                     .OrderByDescending(gp => gp.CreatedAt)
                     .FirstOrDefaultAsync();
                 
-                string timingStatus = "Authorized Return";
+                string timingStatus = "AUTHORIZED RETURN";
 
                 if (activePass != null) {
                     if (DateTime.UtcNow > activePass.ValidTill) {
                         timingStatus = "LATE RETURN";
                         var alertMsg = $"⚠️ LOGISTICS ALERT: {asset.AssignedEmployee?.Name} returned the asset ({asset.AssetId}) LATER than scheduled.";
-                        await SaveAndPushAlert(alertMsg, timingStatus, log, false);
+                        _context.Notifications.Add(new Notification { Message = alertMsg, Type = "Info", Timestamp = DateTime.UtcNow });
+                        await _hubContext.Clients.All.SendAsync("ReceiveAlert", alertMsg);
                     } 
-                    else if (DateTime.UtcNow < activePass.ValidFrom.AddHours(1)) // Just an example logic for 'very early' or just 'early'
+                    else if (DateTime.UtcNow < activePass.ValidFrom) 
                     {
                         timingStatus = "EARLY RETURN";
                         var alertMsg = $"ℹ️ INFO: {asset.AssignedEmployee?.Name} returned the asset ({asset.AssetId}) EARLIER than anticipated.";
-                        await SaveAndPushAlert(alertMsg, timingStatus, log, false);
+                        _context.Notifications.Add(new Notification { Message = alertMsg, Type = "Info", Timestamp = DateTime.UtcNow });
+                        await _hubContext.Clients.All.SendAsync("ReceiveAlert", alertMsg);
                     }
                     else {
-                        timingStatus = "On-Time Return";
+                        timingStatus = "ON-TIME RETURN";
                     }
                     activePass.Status = "Closed";
                 }

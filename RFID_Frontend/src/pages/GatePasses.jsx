@@ -16,9 +16,16 @@ function GatePasses() {
   const [allEmployees, setAllEmployees] = useState([]);
   const [adminSelectedEmpId, setAdminSelectedEmpId] = useState('');
 
+  const getDefaultLocalTime = (addHours = 0) => {
+    const now = new Date();
+    now.setHours(now.getHours() + addHours);
+    const offset = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - offset).toISOString().slice(0, 16);
+  };
+
   // Form State (Now singular selection dropdown)
   const [selectedAssetId, setSelectedAssetId] = useState(''); 
-  const [validFrom, setValidFrom] = useState(new Date().toISOString().slice(0, 16));
+  const [validFrom, setValidFrom] = useState(getDefaultLocalTime(0));
   const [validTill, setValidTill] = useState('');
   const [reason, setReason] = useState('');
   
@@ -38,6 +45,11 @@ function GatePasses() {
   useEffect(() => {
     fetchData();
   }, [userRole]);
+
+  const parseUtcDate = (dateStr) => {
+      if (!dateStr) return new Date();
+      return new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
+  };
 
   const handlePrintGatePass = (p) => {
       const emp = allEmployees.find(e => e.id === p.employeeId || e.Id === p.employeeId);
@@ -110,8 +122,8 @@ function GatePasses() {
               <div class="section">
                  <div class="section-title">3. Logistics & Movement</div>
                  <div class="grid">
-                    <div class="data-group"><div class="label">Exit Authorized From</div><div class="val">${new Date(p.validFrom).toLocaleString()}</div></div>
-                    <div class="data-group"><div class="label">Expected Return By</div><div class="val">${new Date(p.validTill).toLocaleString()}</div></div>
+                    <div class="data-group"><div class="label">Exit Authorized From</div><div class="val">${parseUtcDate(p.validFrom).toLocaleString()}</div></div>
+                    <div class="data-group"><div class="label">Expected Return By</div><div class="val">${parseUtcDate(p.validTill).toLocaleString()}</div></div>
                     <div class="data-group val-long"><div class="label">Movement Reason / Destination</div><div class="val">${p.reason}</div></div>
                  </div>
               </div>
@@ -545,11 +557,11 @@ function GatePasses() {
                                     <div style={{ fontSize: '0.8rem', fontWeight: '800', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></div>
-                                            EXIT: {new Date(p.validFrom).toLocaleDateString()} {new Date(p.validFrom).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            EXIT: {parseUtcDate(p.validFrom).toLocaleDateString()} {parseUtcDate(p.validFrom).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                         </span>
                                         <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }}></div>
-                                            RTN: {new Date(p.validTill).toLocaleDateString()} {new Date(p.validTill).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            RTN: {parseUtcDate(p.validTill).toLocaleDateString()} {parseUtcDate(p.validTill).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                         </span>
                                     </div>
                                 </td>

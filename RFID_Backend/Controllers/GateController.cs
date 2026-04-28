@@ -59,7 +59,9 @@ namespace RFID_Backend.Controllers
             if (request.Direction == "Out")
             {
                 var activePass = await _context.GatePasses
-                    .FirstOrDefaultAsync(gp => gp.AssetId == asset.Id && gp.Status == "Approved");
+                    .Where(gp => gp.AssetId == asset.Id && gp.Status == "Approved")
+                    .OrderByDescending(gp => gp.CreatedAt)
+                    .FirstOrDefaultAsync();
 
                 // EXIT VALIDATION
                 if (activePass == null) {
@@ -85,7 +87,9 @@ namespace RFID_Backend.Controllers
             {
                 asset.CurrentStatus = "Inside";
                 var activePass = await _context.GatePasses
-                    .FirstOrDefaultAsync(gp => gp.AssetId == asset.Id && gp.Status == "Approved");
+                    .Where(gp => gp.AssetId == asset.Id && gp.Status == "Approved")
+                    .OrderByDescending(gp => gp.CreatedAt)
+                    .FirstOrDefaultAsync();
                 
                 string timingStatus = "Authorized Return";
 

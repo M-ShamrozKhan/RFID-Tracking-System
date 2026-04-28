@@ -105,6 +105,16 @@ using (var scope = app.Services.CreateScope())
         context.SaveChanges();
     }
 
+    // Hot-Inject VALIDATE_ASSET and ASSET_TIMELINE permissions
+    if (!context.Permissions.Any(p => p.Code == "VALIDATE_ASSET_VIEW"))
+    {
+        context.Permissions.Add(new RFID_Backend.Models.Permission { Name = "View VALIDATE_ASSET", Code = "VALIDATE_ASSET_VIEW" });
+        context.Permissions.Add(new RFID_Backend.Models.Permission { Name = "Edit VALIDATE_ASSET", Code = "VALIDATE_ASSET_EDIT" });
+        context.Permissions.Add(new RFID_Backend.Models.Permission { Name = "View ASSET_TIMELINE", Code = "ASSET_TIMELINE_VIEW" });
+        context.Permissions.Add(new RFID_Backend.Models.Permission { Name = "Edit ASSET_TIMELINE", Code = "ASSET_TIMELINE_EDIT" });
+        context.SaveChanges();
+    }
+
     if (!context.Roles.Any())
     {
         var r_super = new RFID_Backend.Models.Role { Name = "SuperAdmin", Description = "Full System Oversight" };

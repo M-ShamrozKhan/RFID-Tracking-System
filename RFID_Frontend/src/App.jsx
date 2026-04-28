@@ -221,11 +221,13 @@ function AppLayout() {
             )}
             
             {hasAccess('ASSETS') && (
-              <>
                  <NavLink to="/assets" icon="💻" label="Laptops & Assets" isCollapsed={isCollapsed} />
+            )}
+            {hasAccess('VALIDATE_ASSET') && (
                  <NavLink to="/validate-asset" icon="🔍" label="Validate Asset" isCollapsed={isCollapsed} />
+            )}
+            {hasAccess('ASSET_TIMELINE') && (
                  <NavLink to="/timeline" icon="⏱️" label="Asset Timeline" isCollapsed={isCollapsed} />
-              </>
             )}
 
             {hasAccess('RBAC') && (

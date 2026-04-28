@@ -60,7 +60,7 @@ function RBAC() {
   };
 
   const [newRoleName, setNewRoleName] = useState('');
-  const nodes = ["EMPLOYEES", "MYTEAM", "ASSETS", "GATEPASSES", "REPORTS", "DASHBOARD", "RFID_CONFIG"];
+  const nodes = ["EMPLOYEES", "MYTEAM", "ASSETS", "VALIDATE_ASSET", "ASSET_TIMELINE", "GATEPASSES", "REPORTS", "DASHBOARD", "RFID_CONFIG"];
 
   const handleToggleAssetCapability = async (roleId, isEnabled) => {
     try {
@@ -238,7 +238,7 @@ function RBAC() {
                                 const editPerm = (data.allPermissions || []).find(p => p.code === `${node}_EDIT`);
                                 return (
                                     <tr key={node}>
-                                        <td style={{fontWeight: 600, color: '#334155'}}>{node.replace('_', ' ')}</td>
+                                        <td style={{fontWeight: 600, color: '#334155'}}>{node === 'ASSETS' ? 'LAPTOPS & ASSETS' : node.replace('_', ' ')}</td>
                                         <td style={{textAlign: 'center'}}>
                                             <input 
                                                 type="checkbox" 

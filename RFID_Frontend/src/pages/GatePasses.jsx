@@ -39,6 +39,104 @@ function GatePasses() {
     fetchData();
   }, [userRole]);
 
+  const handlePrintGatePass = (p) => {
+      const emp = allEmployees.find(e => e.id === p.employeeId || e.Id === p.employeeId);
+      const asset = allAssets.find(a => String(a.assetId) === String(p.taggedDevice) || String(a.assetId) === String(p.assetId));
+      
+      let managerName = "N/A";
+      if (emp && emp.divisionManagerId) {
+          const mgr = allEmployees.find(m => m.id === emp.divisionManagerId || m.Id === emp.divisionManagerId);
+          if (mgr) managerName = mgr.name;
+      }
+      
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      printWindow.document.write(`
+          <html>
+            <head>
+              <title>Gate Pass - GP-${String(p.id).padStart(4, '0')}</title>
+              <style>
+                body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1e293b; max-width: 800px; margin: 0 auto; }
+                .header { text-align: center; border-bottom: 3px solid #1e293b; padding-bottom: 20px; margin-bottom: 30px; }
+                .title { font-size: 28px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #0f172a; }
+                .subtitle { font-size: 14px; color: #64748b; margin-top: 5px; font-weight: 600; }
+                .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-weight: 800; font-size: 12px; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px; }
+                .badge-approved { background: #d1fae5; color: #059669; }
+                .badge-requested { background: #dbeafe; color: #1d4ed8; }
+                .badge-rejected { background: #fee2e2; color: #b91c1c; }
+                .badge-closed { background: #f1f5f9; color: #475569; }
+                .section { margin-bottom: 30px; }
+                .section-title { font-size: 16px; font-weight: 800; background: #f8fafc; padding: 8px 12px; margin-bottom: 15px; border-left: 4px solid #3b82f6; border-radius: 0 8px 8px 0; color: #0f172a; }
+                .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+                .data-group { display: flex; flex-direction: column; gap: 4px; }
+                .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 700; }
+                .val { font-size: 14px; font-weight: 600; color: #0f172a; }
+                .val-long { grid-column: 1 / -1; }
+                .footer { margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; }
+                .sign-box { border-top: 2px dashed #cbd5e1; text-align: center; padding-top: 10px; font-size: 13px; font-weight: 600; color: #64748b; }
+                @media print {
+                  body { padding: 0; }
+                  @page { margin: 1cm; }
+                }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                 <div class="title">OFFICIAL GATE PASS</div>
+                 <div class="subtitle">RFID Tracking System - Hardware Exit Authorization</div>
+                 <h3 style="margin: 10px 0 0 0; color: #3b82f6;">GP-${String(p.id).padStart(4, '0')}</h3>
+                 <div class="badge badge-${p.status.toLowerCase()}">${p.status}</div>
+              </div>
+              
+              <div class="section">
+                 <div class="section-title">1. Identity & Personnel</div>
+                 <div class="grid">
+                    <div class="data-group"><div class="label">Employee Name</div><div class="val">${emp?.name || p.personnelName}</div></div>
+                    <div class="data-group"><div class="label">Employee ID</div><div class="val">${emp?.empId || 'N/A'}</div></div>
+                    <div class="data-group"><div class="label">Department</div><div class="val">${emp?.department || 'N/A'}</div></div>
+                    <div class="data-group"><div class="label">Division Manager</div><div class="val">${managerName}</div></div>
+                 </div>
+              </div>
+              
+              <div class="section">
+                 <div class="section-title">2. Authorized Hardware</div>
+                 <div class="grid">
+                    <div class="data-group"><div class="label">Hardware ID (Tag)</div><div class="val">${p.taggedDevice}</div></div>
+                    <div class="data-group"><div class="label">Brand & Model</div><div class="val">${asset?.brandModel || 'N/A'}</div></div>
+                    <div class="data-group"><div class="label">Serial Number</div><div class="val">${asset?.serialNumber || 'N/A'}</div></div>
+                    <div class="data-group"><div class="label">RFID Tracking Tag</div><div class="val">${asset?.rfidTagId || 'N/A'}</div></div>
+                 </div>
+              </div>
+              
+              <div class="section">
+                 <div class="section-title">3. Logistics & Movement</div>
+                 <div class="grid">
+                    <div class="data-group"><div class="label">Exit Authorized From</div><div class="val">${new Date(p.validFrom).toLocaleString()}</div></div>
+                    <div class="data-group"><div class="label">Expected Return By</div><div class="val">${new Date(p.validTill).toLocaleString()}</div></div>
+                    <div class="data-group val-long"><div class="label">Movement Reason / Destination</div><div class="val">${p.reason}</div></div>
+                 </div>
+              </div>
+
+              <div class="section">
+                 <div class="section-title">4. Management Approval</div>
+                 <div class="grid">
+                    <div class="data-group"><div class="label">Approved By</div><div class="val">${p.approvedBy || 'Pending'}</div></div>
+                    <div class="data-group"><div class="label">Manager Remarks</div><div class="val">${p.remarks || 'None'}</div></div>
+                 </div>
+              </div>
+
+              <div class="footer">
+                 <div class="sign-box">Employee Signature</div>
+                 <div class="sign-box">Security (Exit Validation)</div>
+                 <div class="sign-box">Security (Return Entry)</div>
+              </div>
+            </body>
+          </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => { printWindow.print(); }, 250);
+  };
+
   const fetchData = async () => {
     try {
       let allPasses = [];
@@ -469,18 +567,23 @@ function GatePasses() {
                                     {p.remarks && <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '6px' }}>Notes: {p.remarks}</div>}
                                 </td>
                                 <td style={tdStyle}>
-                                    {p.status === 'Requested' && (userRole === 'SuperAdmin' || userRole === 'DivisionalManager' || userRole === 'Admin') ? (
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <button onClick={() => handleApprove(p.id)} style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)' }}>Approve</button>
-                                            <button onClick={() => openRejectModal(p.id)} style={{ padding: '8px 16px', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem' }}>Reject</button>
-                                        </div>
-                                    ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            {p.status === 'Approved' ? <div style={{ color: '#10b981', fontWeight: '800', fontSize: '0.85rem' }}>✓ {p.approvedBy}</div> :
-                                             p.status === 'Closed' ? <div style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: '700' }}>Retired Archive</div> :
-                                             <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Authenticated</div>}
-                                        </div>
-                                    )}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {p.status === 'Requested' && (userRole === 'SuperAdmin' || userRole === 'DivisionalManager' || userRole === 'Admin') ? (
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button onClick={() => handleApprove(p.id)} style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)' }}>Approve</button>
+                                                <button onClick={() => openRejectModal(p.id)} style={{ padding: '8px 16px', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem' }}>Reject</button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                {p.status === 'Approved' ? <div style={{ color: '#10b981', fontWeight: '800', fontSize: '0.85rem' }}>✓ {p.approvedBy}</div> :
+                                                 p.status === 'Closed' ? <div style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: '700' }}>Retired Archive</div> :
+                                                 <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Authenticated</div>}
+                                            </div>
+                                        )}
+                                        <button onClick={() => handlePrintGatePass(p)} style={{ padding: '6px 12px', background: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', width: 'fit-content', transition: '0.2s', alignSelf: 'flex-start' }} className="btn-print">
+                                            🖨️ Print PDF
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

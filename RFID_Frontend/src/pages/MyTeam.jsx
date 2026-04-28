@@ -3,8 +3,13 @@ import axios from 'axios';
 
 function MyTeam() {
   const [teamMembers, setTeamMembers] = useState([]);
+  const [allEmployeesMaster, setAllEmployeesMaster] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // SuperAdmin specific states
+  const [teamsOverview, setTeamsOverview] = useState([]);
+  const [selectedTeamManagerId, setSelectedTeamManagerId] = useState(null);
   
   // Gate Passes Modal State
   const [showPassesModal, setShowPassesModal] = useState(false);
@@ -13,6 +18,7 @@ function MyTeam() {
   const [loadingPasses, setLoadingPasses] = useState(false);
 
   const currentEmpId = parseInt(localStorage.getItem('rfid_emp_id')) || 0;
+  const userRole = localStorage.getItem('rfid_auth') || 'Employee';
 
   useEffect(() => {
     fetchTeam();
@@ -22,14 +28,49 @@ function MyTeam() {
     try {
       const res = await axios.get('/api/Employee');
       const allEmployees = res.data;
-      // Filter employees who report to this manager
-      const team = allEmployees.filter(e => e.divisionManagerId === currentEmpId);
-      setTeamMembers(team);
+      setAllEmployeesMaster(allEmployees);
+
+      if (userRole === 'SuperAdmin' || userRole === 'Admin') {
+          // Group by divisionManagerId
+          const grouped = {};
+          allEmployees.forEach(emp => {
+              const mgrId = emp.divisionManagerId || 0;
+              if (!grouped[mgrId]) {
+                  grouped[mgrId] = { 
+                      managerId: mgrId, 
+                      count: 0, 
+                      managerName: 'Direct Reports / Unassigned',
+                      department: 'Various Divisions'
+                  };
+                  if (mgrId !== 0) {
+                      const mgrObj = allEmployees.find(m => m.id === mgrId);
+                      if (mgrObj) {
+                          grouped[mgrId].managerName = mgrObj.name;
+                          grouped[mgrId].department = mgrObj.department || 'N/A';
+                      }
+                  }
+              }
+              grouped[mgrId].count++;
+          });
+          
+          setTeamsOverview(Object.values(grouped).sort((a,b) => b.count - a.count));
+      } else {
+          // Standard view for DivisionalManager
+          const team = allEmployees.filter(e => e.divisionManagerId === currentEmpId);
+          setTeamMembers(team);
+      }
     } catch(e) { 
       console.error(e);
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+      if (selectedTeamManagerId !== null) {
+          const team = allEmployeesMaster.filter(e => (e.divisionManagerId || 0) === selectedTeamManagerId);
+          setTeamMembers(team);
+      }
+  }, [selectedTeamManagerId, allEmployeesMaster]);
 
   const openPassesModal = async (member) => {
     setSelectedMember(member);
@@ -50,22 +91,44 @@ function MyTeam() {
     (emp.empId || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredOverview = teamsOverview.filter(t => 
+    (t.managerName || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (t.department || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const isMasterView = (userRole === 'SuperAdmin' || userRole === 'Admin') && selectedTeamManagerId === null;
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' }}>
         <div>
-           <h1 className="page-title" style={{ margin: 0 }}>My Team Overview</h1>
-           <p style={{ margin: '5px 0 0 0', color: 'var(--text-muted)' }}>Monitor your assigned personnel and their hardware movement requests.</p>
+           <h1 className="page-title" style={{ margin: 0 }}>
+               {isMasterView ? 'Enterprise Teams Overview' : 'My Team Overview'}
+           </h1>
+           <p style={{ margin: '5px 0 0 0', color: 'var(--text-muted)' }}>
+               {isMasterView ? 'Monitor all functional teams and their respective division managers.' : 'Monitor assigned personnel and their hardware movement requests.'}
+           </p>
         </div>
+        {!isMasterView && (userRole === 'SuperAdmin' || userRole === 'Admin') && (
+            <button 
+                onClick={() => { setSelectedTeamManagerId(null); setSearchTerm(''); }} 
+                className="btn-primary" 
+                style={{ padding: '10px 20px', background: 'white', color: '#0f172a', border: '1px solid #cbd5e1', boxShadow: 'none' }}
+            >
+                ← Back to Teams List
+            </button>
+        )}
       </div>
 
       <div className="glass-panel" style={{ padding: '0', border: '1px solid var(--border-color)', borderRadius: '12px', marginTop: '20px', overflow: 'hidden' }}>
         <div style={{ padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Team Members ({teamMembers.length})</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
+                {isMasterView ? `Functional Teams (${filteredOverview.length})` : `Team Members (${teamMembers.length})`}
+            </h3>
             <div style={{ position: 'relative' }}>
                 <input 
                   type="text" 
-                  placeholder="🔍 Search name or ID..." 
+                  placeholder={isMasterView ? "🔍 Search Manager or Dept..." : "🔍 Search name or ID..."} 
                   value={searchTerm} 
                   onChange={e => setSearchTerm(e.target.value)}
                   style={{ 
@@ -82,49 +145,94 @@ function MyTeam() {
         <div style={{ overflowX: 'auto' }}>
         <table className="table-main" style={{ margin: 0 }}>
           <thead>
-            <tr>
-              <th>Emp. ID</th>
-              <th>Name & Contact</th>
-              <th>Dept & Div</th>
-              <th>Status</th>
-              <th>Assigned Hardware</th>
-              <th>Gate Passes</th>
-            </tr>
+            {isMasterView ? (
+                <tr>
+                    <th>Division Manager</th>
+                    <th>Core Department</th>
+                    <th>Team Size</th>
+                    <th>Actions</th>
+                </tr>
+            ) : (
+                <tr>
+                  <th>Emp. ID</th>
+                  <th>Name & Contact</th>
+                  <th>Dept & Div</th>
+                  <th>Status</th>
+                  <th>Assigned Hardware</th>
+                  <th>Gate Passes</th>
+                </tr>
+            )}
           </thead>
           <tbody>
-            {!loading && filteredTeam.length === 0 && (
-                <tr><td colSpan="6" style={{ textAlign: "center", fontStyle: "italic", padding: "2rem", color: 'var(--text-muted)' }}>No team members assigned to you yet.</td></tr>
+            {loading ? (
+                <tr><td colSpan="6" style={{ textAlign: "center", padding: "2rem" }}>Loading...</td></tr>
+            ) : isMasterView ? (
+                filteredOverview.length === 0 ? (
+                    <tr><td colSpan="4" style={{ textAlign: "center", fontStyle: "italic", padding: "2rem", color: 'var(--text-muted)' }}>No teams found.</td></tr>
+                ) : (
+                    filteredOverview.map(team => (
+                        <tr key={team.managerId}>
+                            <td>
+                                <div style={{ fontWeight: '800', color: '#1e293b', fontSize: '1.05rem' }}>{team.managerName}</div>
+                                {team.managerId !== 0 && <div style={{fontSize:'0.8em', color:'var(--text-muted)'}}>Manager ID: {team.managerId}</div>}
+                            </td>
+                            <td>
+                                <span style={{ background: '#f1f5f9', padding: '4px 10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem' }}>
+                                    {team.department}
+                                </span>
+                            </td>
+                            <td>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#3b82f6' }}>{team.count}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Personnel</div>
+                            </td>
+                            <td>
+                                <button 
+                                    onClick={() => { setSelectedTeamManagerId(team.managerId); setSearchTerm(''); }} 
+                                    className="btn-primary" 
+                                    style={{ padding: '8px 20px', borderRadius: '8px', fontWeight: '700' }}
+                                >
+                                    🔍 View Team
+                                </button>
+                            </td>
+                        </tr>
+                    ))
+                )
+            ) : (
+                filteredTeam.length === 0 ? (
+                    <tr><td colSpan="6" style={{ textAlign: "center", fontStyle: "italic", padding: "2rem", color: 'var(--text-muted)' }}>No team members assigned to this division yet.</td></tr>
+                ) : (
+                    filteredTeam.map(emp => (
+                      <tr key={emp.id}>
+                        <td><strong>{emp.empId}</strong></td>
+                        <td>
+                          <div style={{ fontWeight: '800', color: '#1e293b' }}>{emp.name}</div>
+                          <div style={{fontSize:'0.8em', color:'var(--text-muted)'}}>{emp.contactDetails || '-'}</div>
+                        </td>
+                        <td>
+                           <div style={{ fontWeight: '600' }}>{emp.department}</div>
+                           <div style={{fontSize:'0.8em', color:'var(--text-muted)', marginTop:'2px'}}>{emp.division}</div>
+                        </td>
+                        <td><span className={emp.status === 'Active' ? 'badge badge-success' : 'badge badge-danger'}>{emp.status}</span></td>
+                        <td>
+                           {emp.assignedAssets && emp.assignedAssets.length > 0 ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {emp.assignedAssets.map(a => (
+                                  <span key={a.id} className="badge badge-info" title={a.brandModel} style={{ width: 'fit-content' }}>💻 {a.assetId}</span>
+                                ))}
+                              </div>
+                           ) : (
+                              <span style={{color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic'}}>N/A</span>
+                           )}
+                        </td>
+                        <td>
+                            <button onClick={() => openPassesModal(emp)} className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}>
+                                👀 View Requests
+                            </button>
+                        </td>
+                      </tr>
+                    ))
+                )
             )}
-            {filteredTeam.map(emp => (
-              <tr key={emp.id}>
-                <td><strong>{emp.empId}</strong></td>
-                <td>
-                  <div style={{ fontWeight: '800', color: '#1e293b' }}>{emp.name}</div>
-                  <div style={{fontSize:'0.8em', color:'var(--text-muted)'}}>{emp.contactDetails || '-'}</div>
-                </td>
-                <td>
-                   <div style={{ fontWeight: '600' }}>{emp.department}</div>
-                   <div style={{fontSize:'0.8em', color:'var(--text-muted)', marginTop:'2px'}}>{emp.division}</div>
-                </td>
-                <td><span className={emp.status === 'Active' ? 'badge badge-success' : 'badge badge-danger'}>{emp.status}</span></td>
-                <td>
-                   {emp.assignedAssets && emp.assignedAssets.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {emp.assignedAssets.map(a => (
-                          <span key={a.id} className="badge badge-info" title={a.brandModel} style={{ width: 'fit-content' }}>💻 {a.assetId}</span>
-                        ))}
-                      </div>
-                   ) : (
-                      <span style={{color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic'}}>N/A</span>
-                   )}
-                </td>
-                <td>
-                    <button onClick={() => openPassesModal(emp)} className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}>
-                        👀 View Requests
-                    </button>
-                </td>
-              </tr>
-            ))}
           </tbody>
         </table>
         </div>

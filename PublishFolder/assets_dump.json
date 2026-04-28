@@ -1,0 +1,129 @@
+[
+  {
+    "id": 1,
+    "assetId": "LPT-0001",
+    "rfidTagId": "001",
+    "serialNumber": "12345678",
+    "brandModel": "Dell",
+    "purchaseDetails": "1",
+    "warrantyInfo": "1",
+    "assignedToEmployeeId": 3,
+    "assignedEmployee": {
+      "id": 3,
+      "empId": "0002",
+      "name": "Saood",
+      "contactDetails": "03232441213",
+      "department": "Sales",
+      "division": "2",
+      "designation": "Sales officer",
+      "status": "Active",
+      "role": "Staff/Employee",
+      "password": "123456"
+    },
+    "currentStatus": "Inside"
+  },
+  {
+    "id": 2,
+    "assetId": "LPT-0002",
+    "rfidTagId": "0002",
+    "serialNumber": "87654321",
+    "brandModel": "hp",
+    "purchaseDetails": "2",
+    "warrantyInfo": "2",
+    "assignedToEmployeeId": null,
+    "assignedEmployee": null,
+    "currentStatus": "Inside"
+  },
+  {
+    "id": 3,
+    "assetId": "LPT-0003",
+    "rfidTagId": "0003",
+    "serialNumber": "123456",
+    "brandModel": "Lenovo",
+    "purchaseDetails": "2",
+    "warrantyInfo": "4",
+    "assignedToEmployeeId": 3,
+    "assignedEmployee": {
+      "id": 3,
+      "empId": "0002",
+      "name": "Saood",
+      "contactDetails": "03232441213",
+      "department": "Sales",
+      "division": "2",
+      "designation": "Sales officer",
+      "status": "Active",
+      "role": "Staff/Employee",
+      "password": "123456"
+    },
+    "currentStatus": "Inside"
+  },
+  {
+    "id": 4,
+    "assetId": "LPT-0004",
+    "rfidTagId": "0004",
+    "serialNumber": "123455",
+    "brandModel": "HP G5",
+    "purchaseDetails": "21",
+    "warrantyInfo": "2",
+    "assignedToEmployeeId": 4,
+    "assignedEmployee": {
+      "id": 4,
+      "empId": "01",
+      "name": "Huzaifa",
+      "contactDetails": "03242332123",
+      "department": "Sales",
+      "division": "2",
+      "designation": "Head",
+      "status": "Active",
+      "role": "Staff/Employee",
+      "password": "123456"
+    },
+    "currentStatus": "Inside"
+  },
+  {
+    "id": 5,
+    "assetId": "LPT-0005",
+    "rfidTagId": "222",
+    "serialNumber": "134",
+    "brandModel": "Lenovo",
+    "purchaseDetails": "12",
+    "warrantyInfo": "12",
+    "assignedToEmployeeId": 5,
+    "assignedEmployee": {
+      "id": 5,
+      "empId": "222",
+      "name": "Jawwad",
+      "contactDetails": "0232313121",
+      "department": "IT",
+      "division": "2",
+      "designation": "Lead",
+      "status": "Active",
+      "role": "Staff/Employee",
+      "password": "123456"
+    },
+    "currentStatus": "Inside"
+  },
+  {
+    "id": 6,
+    "assetId": "LPT-0006",
+    "rfidTagId": "333",
+    "serialNumber": "1213",
+    "brandModel": "DELL G",
+    "purchaseDetails": "1231",
+    "warrantyInfo": "12",
+    "assignedToEmployeeId": 6,
+    "assignedEmployee": {
+      "id": 6,
+      "empId": "111",
+      "name": "Nehan",
+      "contactDetails": "0333123123",
+      "department": "IT",
+      "division": "2",
+      "designation": "Head",
+      "status": "Active",
+      "role": "Staff/Employee",
+      "password": "123456"
+    },
+    "currentStatus": "Inside"
+  }
+]

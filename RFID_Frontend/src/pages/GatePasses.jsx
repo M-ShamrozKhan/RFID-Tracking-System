@@ -297,12 +297,12 @@ function GatePasses() {
                     <textarea required placeholder="e.g. Scheduled client demo at Site A, or transferring to WFH location..." value={reason} onChange={e => setReason(e.target.value)} style={{ padding: '16px', borderRadius: '8px', border: '2px solid #cbd5e1', fontSize: '1rem', background: '#f8fafc', minHeight: '120px', resize: 'vertical', fontFamily: 'inherit' }} />
                 </div>
 
-                <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
-                    <button type="submit" className="btn-primary" style={{ padding: '18px 40px', fontSize: '1.1rem', fontWeight: '900', letterSpacing: '1px', width: '100%' }}>
-                        SUBMIT OFFICIAL REQUEST
+                <div style={{ gridColumn: '1 / -1', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'flex-start' }}>
+                    <button type="submit" className="btn-primary" style={{ padding: '14px 50px', fontSize: '1rem', fontWeight: '800', letterSpacing: '1px', width: 'auto', borderRadius: '10px' }}>
+                        Submit
                     </button>
                     {(userRole === 'Staff/Employee' || userRole === 'Employee') && (
-                        <div style={{ marginTop: '15px', fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>
                             Logging Request As: <strong style={{color: '#64748b'}}>{currentEmpName}</strong> (ID: {currentEmpId})
                         </div>
                     )}

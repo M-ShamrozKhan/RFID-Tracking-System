@@ -60,7 +60,7 @@ function RBAC() {
   };
 
   const [newRoleName, setNewRoleName] = useState('');
-  const nodes = ["EMPLOYEES", "ASSETS", "GATEPASSES", "REPORTS", "DASHBOARD", "RFID_CONFIG"];
+  const nodes = ["EMPLOYEES", "MYTEAM", "ASSETS", "GATEPASSES", "REPORTS", "DASHBOARD", "RFID_CONFIG"];
 
   const handleToggleAssetCapability = async (roleId, isEnabled) => {
     try {

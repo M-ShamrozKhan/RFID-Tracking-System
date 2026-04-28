@@ -18,5 +18,9 @@ export default defineConfig({
         secure: false,
       }
     }
+  },
+  build: {
+    outDir: '../RFID_Backend/wwwroot',
+    emptyOutDir: true
   }
 })

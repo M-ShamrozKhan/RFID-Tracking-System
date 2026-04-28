@@ -216,7 +216,7 @@ function AppLayout() {
               <NavLink to="/employees" icon="👥" label="Employees" isCollapsed={isCollapsed} />
             )}
             
-            {userRole === 'DivisionalManager' && (
+            {hasAccess('MYTEAM') && (
               <NavLink to="/my-team" icon="👥" label="My Team" isCollapsed={isCollapsed} />
             )}
             

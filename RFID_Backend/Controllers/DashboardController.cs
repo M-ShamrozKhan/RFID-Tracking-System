@@ -31,7 +31,14 @@ namespace RFID_Backend.Controllers
                     .Where(e => e.DivisionManagerId == empId || e.Id == empId)
                     .Select(e => e.Id)
                     .ToListAsync();
-                
+            }
+            else if ((role == "Employee" || role == "Staff/Employee") && empId > 0)
+            {
+                validEmpIds = new List<int> { empId };
+            }
+
+            if (validEmpIds != null)
+            {
                 assetsQuery = assetsQuery.Where(a => a.AssignedToEmployeeId != null && validEmpIds.Contains(a.AssignedToEmployeeId.Value));
                 passesQuery = passesQuery.Where(p => validEmpIds.Contains(p.EmployeeId));
             }
@@ -55,7 +62,7 @@ namespace RFID_Backend.Controllers
 
             var allLogs = await _context.MovementLogs.OrderByDescending(l => l.Timestamp).ToListAsync();
             
-            if (role == "DivisionalManager" && empId > 0)
+            if (validEmpIds != null)
             {
                 var validTags = assets.Select(a => a.RfidTagId).ToList();
                 allLogs = allLogs.Where(l => validTags.Contains(l.RfidTagId)).ToList();
@@ -64,11 +71,24 @@ namespace RFID_Backend.Controllers
             var logsFeed = allLogs.Take(50).ToList();
             var unauthorizedCount = allLogs.Count(l => !l.IsAuthorized);
 
+            var currentUser = await _context.Employees
+                .Include(e => e.AssignedAssets)
+                .FirstOrDefaultAsync(e => e.Id == empId);
+
+            var myAssets = currentUser?.AssignedAssets?.Select(a => new {
+                a.Id,
+                a.AssetId,
+                a.BrandModel,
+                a.RfidTagId,
+                a.CurrentStatus
+            }).ToList() ?? new List<object>();
+
             return Ok(new {
                 InsideCount = insideAssets.Count,
                 OutsideCount = outsideAssets.Count,
                 OverdueCount = overdueAssets.Count,
                 UnauthorizedCount = unauthorizedCount,
+                MyAssets = myAssets,
                 
                 Drilldown = new {
                     Inside = insideAssets.Select(a => {

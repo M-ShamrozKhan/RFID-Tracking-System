@@ -5,7 +5,7 @@ import * as signalR from '@microsoft/signalr';
 const API_URL = '/api'; 
 
 function Dashboard() {
-  const [stats, setStats] = useState({ insideCount: 0, outsideCount: 0, overdueCount: 0, unauthorizedCount: 0 });
+  const [stats, setStats] = useState({ insideCount: 0, outsideCount: 0, overdueCount: 0, unauthorizedCount: 0, myAssets: [] });
   const [drilldownData, setDrilldownData] = useState([]);
   const [drilldownType, setDrilldownType] = useState(null);
   const [recentLogs, setRecentLogs] = useState([]);
@@ -146,9 +146,25 @@ function Dashboard() {
   return (
     <div>
       <div style={{ marginBottom: '3rem' }}>
-          <h1 style={{ margin: 0, fontSize: '2.4rem', fontWeight: '900', letterSpacing: '-1.5px', color: '#1e293b' }}>SECURITY OPERATIONS CENTER</h1>
+          <h1 style={{ margin: 0, fontSize: '2.4rem', fontWeight: '900', letterSpacing: '-1.5px', color: '#1e293b' }}>Dashboard</h1>
           <p style={{ margin: '5px 0 0 0', color: '#64748b', fontSize: '1.1rem', fontWeight: '500' }}>Real-time hardware movement auditing and logistics metrics.</p>
       </div>
+
+      {stats.myAssets && stats.myAssets.length > 0 && (
+        <div style={{ background: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '20px', padding: '30px', marginBottom: '30px', display: 'flex', alignItems: 'center', gap: '25px' }}>
+           <div style={{ fontSize: '3rem', background: 'white', width: '80px', height: '80px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>💻</div>
+           <div>
+              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '800', color: '#0369a1' }}>My Assigned Hardware</h2>
+              <div style={{ display: 'flex', gap: '15px', marginTop: '10px', flexWrap: 'wrap' }}>
+                 {stats.myAssets.map(a => (
+                    <div key={a.id} style={{ background: 'rgba(255,255,255,0.7)', padding: '8px 15px', borderRadius: '10px', fontWeight: '800', border: '1px solid rgba(3, 105, 161, 0.2)', color: '#0c4a6e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                       📱 {a.assetId} - {a.brandModel} ({a.currentStatus || 'Inside'})
+                    </div>
+                 ))}
+              </div>
+           </div>
+        </div>
+      )}
       
       {/* 4 STRATEGIC COMMAND CENTER WIDGETS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '25px', marginBottom: '3.5rem' }}>

@@ -71,17 +71,15 @@ namespace RFID_Backend.Controllers
             var logsFeed = allLogs.Take(50).ToList();
             var unauthorizedCount = allLogs.Count(l => !l.IsAuthorized);
 
-            var currentUser = await _context.Employees
-                .Include(e => e.AssignedAssets)
-                .FirstOrDefaultAsync(e => e.Id == empId);
-
-            var myAssets = currentUser?.AssignedAssets?.Select(a => new {
-                a.Id,
-                a.AssetId,
-                a.BrandModel,
-                a.RfidTagId,
-                a.CurrentStatus
-            }).ToList() ?? new List<object>();
+            var myAssets = await _context.Assets
+                .Where(a => a.AssignedToEmployeeId == empId)
+                .Select(a => new {
+                    a.Id,
+                    a.AssetId,
+                    a.BrandModel,
+                    a.RfidTagId,
+                    a.CurrentStatus
+                }).ToListAsync();
 
             return Ok(new {
                 InsideCount = insideAssets.Count,

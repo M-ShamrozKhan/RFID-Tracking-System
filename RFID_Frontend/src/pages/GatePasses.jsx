@@ -255,7 +255,7 @@ function GatePasses() {
                             style={{ padding: '16px', borderRadius: '8px', border: '2px solid #818cf8', fontSize: '1rem', background: '#eef2ff', color: '#4f46e5', fontWeight: '700' }}
                         >
                             <option value="">-- Employee ID / Default Self ({currentEmpName}) --</option>
-                            {allEmployees.map(emp => {
+                            {allEmployees.filter(emp => userRole === 'DivisionalManager' ? emp.divisionManagerId === currentEmpId : true).map(emp => {
                                 const id = emp.id || emp.Id;
                                 const actualEmpId = emp.empId || emp.EmpId || `ID-${id}`;
                                 const actualName = emp.name || emp.Name || "Unknown Employee";

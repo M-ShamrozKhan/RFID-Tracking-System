@@ -18,9 +18,17 @@ namespace RFID_Backend.Controllers
 
         // GET: api/Asset (Laptops with Employee data)
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Asset>>> GetAssets()
+        public async Task<ActionResult<IEnumerable<Asset>>> GetAssets([FromQuery] string? allowedEmpIds)
         {
-            return await _context.Assets.Include(a => a.AssignedEmployee).ToListAsync();
+            var query = _context.Assets.Include(a => a.AssignedEmployee).AsQueryable();
+            
+            if (!string.IsNullOrEmpty(allowedEmpIds))
+            {
+                var empIds = allowedEmpIds.Split(',').Select(int.Parse).ToList();
+                query = query.Where(a => a.AssignedToEmployeeId.HasValue && empIds.Contains(a.AssignedToEmployeeId.Value));
+            }
+            
+            return await query.ToListAsync();
         }
 
         // POST: api/Asset (Naya Laptop add karne+ RFID link karne k liye)

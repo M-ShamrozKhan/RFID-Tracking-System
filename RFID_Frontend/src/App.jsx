@@ -12,6 +12,7 @@ import RBAC from './pages/RBAC';
 import Login from './pages/Login';
 import ValidateAsset from './pages/ValidateAsset';
 import AssetTimeline from './pages/AssetTimeline';
+import Reports from './pages/Reports';
 import './index.css';
 
 const MenuIcon = () => (
@@ -235,6 +236,11 @@ function AppLayout() {
             )}
             
             {hasAccess('REPORTS') && (
+              <NavLink to="/reports" icon="📊" label="Reports & Analytics" isCollapsed={isCollapsed} />
+            )}
+
+            {/* Keeping direct access to Audit Logs for admins if needed, or merging it into Reports */}
+            {hasAccess('RBAC') && (
               <NavLink to="/audits" icon="📜" label="Audit Logs" isCollapsed={isCollapsed} />
             )}
 
@@ -379,6 +385,7 @@ function AppLayout() {
                 <Route path="/gatepasses" element={<GatePasses />} />
                 <Route path="/gatepasses/:tab" element={<GatePasses />} />
                 <Route path="/audits" element={<AuditLogs />} />
+                <Route path="/reports" element={<Reports />} />
                 <Route path="/rbac" element={<RBAC />} />
                 </Routes>
             </div>
